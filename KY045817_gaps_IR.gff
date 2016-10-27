@@ -1,0 +1,9 @@
+##gff-version 3
+##sequence-region KY045817 1 152245
+KY045817	.	gene	11633	12550	.	+	.	Name=gap1
+KY045817	.	gene	30784	31856	.	+	.	Name=gap2
+KY045817	.	gene	45897	46514	.	+	.	Name=gap3
+KY045817	.	gene	124279	125048	.	+	.	Name=gap4
+KY045817	.	gene	127354	127414	.	+	.	Name=gap5
+KY045817	.	gene	127415	152447	.	+	.	Name=IRA
+KY045817	.	gene	84120	109152	.	+	.	Name=IRB
