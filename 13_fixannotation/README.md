@@ -1,0 +1,341 @@
+Aster_NC_027434.gb and Aster_NC_027434.CDS.fasta were acquired from http://www.ncbi.nlm.nih.gov/ on 19 August 2016.
+
+Need to move the fragment of the LSC, 152244-152447 from the end of the assembly to the front and adjust the GFF file to match.
+####create links to important files
+```
+ln -s ../11_liftover/NC_027434.1* ./
+ln -s /lustre/projects/staton/projects/trigiano/pityopsis/chloroplast_genome/analysis_081616/Aster_NC_027434.gb ./
+```
+---
+####load necessary modules
+```
+module unload python/2.7.3
+module load biopython
+```
+####run python script to extract pertinent information from gff file
+```
+./xDev_extractAA.py --g NC_027434.1.gff --f NC_027434.1.fa --o NC_027434.1
+```
+---
+####load necessary modules
+```
+module unload python/2.7.3
+module load biopython
+```
+####run python script to extract fasta sequence for genes/proteins from genbank file in aster
+```
+./xDev_extractGenesGb.py --g Aster_NC_027434.gb --o Aster_NC_027434
+```
+---
+####create blast DBs, one for rRNAs and tRNAs
+```
+module load blast
+makeblastdb \
+-in Aster_NC_027434.r_t_RNA.fasta \
+-dbtype nucl \
+-title Aster_NC_027434.r_t_RNA \
+-out Aster_NC_027434.r_t_RNA
+```
+####one for proteins
+```
+makeblastdb \
+-in Aster_NC_027434.CDS2.fasta \
+-dbtype 'prot' \
+-title Aster_NC_027434.CDS \
+-out Aster_NC_027434.CDS
+```
+####one for the Aster genome 
+```
+makeblastdb \
+-in Aster_NC_027434.fasta \
+-dbtype nucl \
+-title Aster_NC_027434.fasta \
+-out Aster_NC_027434.fasta
+```
+####one for the Pityopsis genome
+```
+makeblastdb \
+-in NC_027434.1.fa \
+-dbtype nucl \
+-title NC_027434.1.fa \
+-out NC_027434.1.fa
+```
+---
+####run BLAST nucleotides tRNAs + rRNAs
+```
+module load blast
+echo "Pitiyopsis	Aster	% identity	alignment length	mismatches	gap opens	q. start	q. end	s. start	s. end	evalue	bit score"
+blastn \
+-query NC_027434.1.ntd.fasta \
+-db Aster_NC_027434.r_t_RNA \
+-outfmt 6 \
+-show_gis \
+-max_target_seqs 1 \
+-num_threads 30
+```
+####run BLAST proteins
+```
+echo "Pitiyopsis	Aster	% identity	alignment length	mismatches	gap opens	q. start	q. end	s. start	s. end	evalue	bit score"
+blastp \
+-query NC_027434.1.aa.fasta \
+-db Aster_NC_027434.CDS \
+-outfmt 6 \
+-show_gis \
+-max_target_seqs 1 \
+-num_threads 30
+```
+---
+####find differences between blast outputs
+```
+cut -f 1,2 05_BLAST.tsv | sed 's/_.*,//g' | sed 's/gi|.*|//g' | grep -v "Aster" > data
+diff <(awk '{print $1}' data) <(awk '{print $2}' data) > 06_differences.txt
+rm -f data
+```
+---
+####this script is a bit hacky and juggles output between tmp1 and tmp2 (I did this purely to avoid a lot of piping and keep the comments clean for github). In the end these tmp files are erased. This script makes specific edits to the 01_p_8-16.gff based on errors in annotation, start by removing orf188
+```
+grep -v "110446	111009" 01_p_8-16.gff > tmp1
+```
+####extend atpB from 49,873 to 49,870, note this step has to account for atpE's boundary at the same site 49,873
+```
+sed 's/49873	51351/49870	51351/g' tmp1 > tmp2
+```
+####extend atpE from 49,472 to 49,469, this gene had shared a boundary with the previous annotation of atpB
+```
+sed 's/49472	49873/49469	49873/g' tmp2 > tmp1
+```
+####extend rps8 from 75,541 to 75,538.
+```
+sed 's/75541/75538/g' tmp1 > tmp2
+```
+####extend psbC from 32,999 to 33,002.
+```
+sed 's/32999/33002/g' tmp2 > tmp1
+```
+####extend rpl36 from 74,964 to 74,961.
+```
+sed 's/74964/74961/g' tmp1 > tmp2
+```
+####extend psaA from 37,195 to 37,192.
+```
+sed 's/37195/37192/g' tmp2 > tmp1
+```
+####extend psbD from 30,630 to 31,633.
+```
+sed 's/31630/31633/g' tmp1 > tmp2
+```
+####extend ycf15 from 94,130 to 94,127.
+```
+sed 's/94130/94127/g' tmp2 > tmp1
+```
+####extend atpA from 28,164 to 28,170.
+```
+sed 's/28164/28170/g' tmp1 > tmp2
+```
+####extend rbcL from 53,404 to 53,437. This adds another ~11 codons however appears to be consistent with the Aster cp genome annotation althougth with some minor variations.
+```
+sed 's/53404/53437/g' tmp2 > tmp1
+```
+####extend psbE from 60,555 to 60,552
+```
+sed 's/60555/60552/g' tmp1 > tmp2
+```
+####extend ndhC from 47,122 to 47,119
+```
+sed 's/47122/47119/g' tmp2 > tmp1
+```
+####extend psaB from 34,965 to 34,962
+```
+sed 's/34965/34962/g' tmp1 > tmp2
+```
+####extend petD from 73,154 to 73,160. This annotation has an early stop... Missing CDS? 7 bp exon?
+```
+sed 's/73154/73160/g' tmp2 > tmp1
+```
+####extend rpoC1 from 17,692 to 17,693. This annotation has an early stop...
+```
+sed 's/17692/17693/g' tmp1 > tmp2
+```
+####extend rps16 from 4,671 to 4,669. This annotation has an early stop... Missing CDS? No exon?
+```
+sed 's/4671/4669/g' tmp2 > tmp1 
+```
+####extend psbZ from 33,832 to 33,835.
+```
+sed 's/33832/33835/g' tmp1 > tmp2
+```
+####extend rpl14 from 76,132 to 76,129.
+```
+sed 's/76132/76129/g' tmp2 > tmp1
+```
+####extend rps4 from 43,091 to 43,088.
+```
+sed 's/43091/43088/g' tmp1 > tmp2
+```
+####extend rpoC2 from 21,932 to 21,938.
+```
+sed 's/21932/21938/g' tmp2 > tmp1
+```
+####rpl32...Extend rpl32 from 118,305 to 118,254.
+```
+sed 's/118305/118254/g' tmp1 > tmp2
+```
+####rpl2 (off by a couple bases here and there)
+```
+sed 's/80663	81053/80661	81053/g' tmp2 > tmp1
+sed 's/79558	79989/79558	79986/g' tmp1 > tmp2
+```
+####clpP (off by a couple bases here and there)
+```
+sed 's/66680	66975/66678	66968/g' tmp2 > tmp1
+sed 's/65822	66050/65822	66049/g' tmp1 > tmp2
+```
+####petD (extra AA after stop codon)
+```
+sed 's/73160/73155/g' tmp2 > tmp1
+```
+####ycf3 (exon1 needs to be altered)
+```
+sed 's/40069	40221/40069	40194/g' tmp1 > tmp2
+sed 's/40914	41162/40917	41162/g' tmp2 > tmp1
+```
+####rpoC1 fixed stop codong slight adjustment
+```
+sed 's/17693/17689/g' tmp1 > tmp2
+```
+####atpF fixed stop codon slight adjustment
+```
+sed 's/26163	26571/26162	26571/g' tmp2 > tmp1
+```
+####rpl16 fixed start codon slight adjustment
+```
+sed 's/76619	77029/76619	76978/g' tmp1 > tmp2
+```
+####rename file and cleanup
+```
+cat tmp2 > 07_p_8-16.gff
+#cat tmp1 > 07_p_8-16.gff
+rm -f tmp1 tmp2
+```
+---
+####load necessary modules
+```
+module unload python/2.7.3
+module load biopython
+```
+####run python script to extract pertinent information from gff file
+```
+./xDev_extractAA.py --g NC_pityopsis.complete.gff --f NC_pityopsis.complete.fa --r Aster_NC_027434.gff3 --o NC_pityopsis
+```
+---
+####search pityopsis genome for Aster_NC matches (protein)
+```
+module load blast
+echo "Pitiyopsis	Aster	% identity	alignment length	mismatches	gap opens	q. start	q. end	s. start	s. end	evalue	bit score"
+blastn \
+-query $1 \
+-db NC_027434.1.fa \
+-outfmt 6 \
+-show_gis \
+-max_target_seqs 1 
+#-num_threads 30
+```
+---
+####search pityopsis genome for Aster_NC matches (protein)
+```
+module load blast
+echo "Pitiyopsis	Aster	% identity	alignment length	mismatches	gap opens	q. start	q. end	s. start	s. end	evalue	bit score"
+blastn \
+-query $1 \
+-db Aster_NC_027434.fasta \
+-outfmt 6 \
+-show_gis \
+-max_target_seqs 1 
+#-num_threads 30
+```
+---
+####load necessary modules
+```
+module unload python/2.7.3
+module load biopython
+```
+####run python script to extract pertinent information from gff file
+```
+./xDev_extractIR.py --g NC_027434.1.fixHandEdits.gff --f NC_027434.1.fa --o NC_027434.1 > IR.fa
+sed 's/NNN\n$/NNN/g' NC_027434.1.fa > tmp.fa
+cat tmp.fa IR.fa > NC_027434.1.complete.fa
+```
+---
+####extract appropriate regions
+```
+#module load biopython
+#python extract.py NC_027434.1.complete.fa 151245 152245 > tmp_end.fasta
+python extract.py NC_027434.1.complete.fa 151448 152448 > tmp_end.fasta
+python extract.py NC_027434.1.complete.fa 1 1000 > tmp_beg.fasta
+cat tmp_end.fasta tmp_beg.fasta > Pityopsis_IRB_to_LSC_boundary.fasta
+```
+####remove extra header
+```
+gep -v ">NC_027434.1subseq1-1000 <unknown description>" Pityopsis_IRB_to_LSC_boundary.fasta > tmp.fa
+sed -i 's/^>.*$/>NC_027434.1/g' tmp.fasta
+module load java/jdk8u5
+java -jar /lustre/projects/staton/software/picard/build/libs/picard.jar NormalizeFasta INPUT=tmp.fa OUTPUT=Pityopsis_IRB_to_LSC_boundary.fasta
+```
+####map with bwa
+```
+/lustre/projects/staton/software/bwa-0.7.15/bwa index Pityopsis_IRB_to_LSC_boundary.fasta
+/lustre/projects/staton/software/bwa-0.7.15/bwa mem -t 15 Pityopsis_IRB_to_LSC_boundary.fasta \
+/lustre/projects/staton/projects/pityopsis_chloroplast/raw_reads/Pfalcata_S2_L001_R1_001.fastq \
+/lustre/projects/staton/projects/pityopsis_chloroplast/raw_reads/Pfalcata_S2_L001_R2_001.fastq \
+> Pityopsis_IRB_to_LSC_boundary.sam
+```
+####manipulate with samtools
+```
+/lustre/projects/staton/software/samtools-1.3/samtools view -b Pityopsis_IRB_to_LSC_boundary.sam |\
+/lustre/projects/staton/software/samtools-1.3/samtools sort -o Pityopsis_IRB_to_LSC_boundary.bam -
+/lustre/projects/staton/software/samtools-1.3/samtools index Pityopsis_IRB_to_LSC_boundary.bam
+/lustre/projects/staton/software/samtools-1.3/samtools faidx Pityopsis_IRB_to_LSC_boundary.fasta
+```
+---
+####load necessary modules
+```
+module unload python/2.7.3
+module load biopython
+```
+####run python script to extract pertinent information from gff file
+```
+./xDev_moveANNO.py --g NC_027434.1.fixHandEdits.gff --f NC_027434.1.complete.fa --o NC_027434.1 
+```
+---
+####LLC needed to be adjusted a bit due to a gap being filled
+```
+echo "##gff-version 3
+##sequence-region NC_027434.1 1 152245"
+grep -v "^#" $1 | awk -v OFS='\t' '{print $1, $2, $3, ($4 + 203), ($5 + 203), $6, $7, $8, $9}' -
+```
+---
+####created this file to try and run VISTA anno this way... gff ended up working out just fine
+```
+grep -v "^#" $1 |\
+gawk '{match($9, /Name=([A-Za-z0-9\-]*);/, a)
+if ($3 == "gene" ) {
+        if ($7 == "+")
+            print ">", $4, $5, a[1];
+        if ($7 == "-")
+            print "<", $4, $5, a[1];
+} else {
+        print $4, $5, $3;
+}
+}' - | grep -v "mRNA" | grep -v "CDS"
+```
+---
+####load necessary modules
+```
+module unload python/2.7.3
+module load biopython
+```
+####run python script to extract pertinent information from gff file
+```
+./xDev_extractProduct.py --g Aster_NC_027434.gff3 --r NC_pityopsis.complete.gff --o Aster
+```
+---
